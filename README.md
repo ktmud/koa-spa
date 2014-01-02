@@ -1,16 +1,17 @@
 # koa-spa
 
 Create a Single Page Application(SPA) server with [koa](http://koajs.com).
+Just like what [pushserve](https://github.com/paulmillr/pushserve) does.
 
-The goal is simple, make all routes under your SPA sending the same `index.html`.
+The goal is simple, make all routes under your SPA send the same `index.html`,
+while keep assets files (css, js) under the same directory accessible.
 
-This is only a [koajs](http://koajs.com) middleware,
+This is only a koa middleware,
 so you can decorate the server with your own middlewares,
-or integrate this `pushState` friendly functionality into
-a _normal server_ with existing server side routing.
+or integrate this "pushState friendly" functionality into
+a _normal server_(with server side routing).
 
-What's even better, you can provide a 404 page just like normal koajs app.
-
+A custom 404 page is possible, too.
 
 ## Example
 
@@ -22,11 +23,6 @@ var spa = require('koa-spa');
 
 var LOCALE_COOKIE = 'locale';
 var ALL_LOCALES = ['zh-cn', 'zh-tw', 'en'];
-
-var routes = {};
-
-// collect all available routes
-require('./app/routes')(spa.routeCollector(routes));
 
 /**
  * Find out what languages user can use, and set a cookie for that
@@ -48,6 +44,10 @@ function detectLanguage(availables) {
 
 
 exports.startServer = function(port, path) {
+  var routes = {};
+  // collect all available routes
+  require('./app/routes')(spa.routeCollector(routes));
+
   var app = koa();
   app.use(spa(path_.join(__dirname, path), {
      index: 'index.html',
@@ -60,28 +60,25 @@ exports.startServer = function(port, path) {
   app.use(detectLanguage(ALL_LOCALES));
 
   // add your custom 404 page
-  app.use(function() {
-    res.status = 404;
-    res.body = 'not found';
+  app.use(function* () {
+    if (this.status == 404) {
+      res.body = 'Nothing Here.';
+    }
   });
 
   app.listen(port);
 };
 ```
 
-`app/routes.js` is your route configuration file for Backbones.js
+The required `app/routes.js` is your route configuration for Backbones.js:
 
 ```javascript
 module.exports = function(match) {
-  match '', 'home#index'
-  match 'login', 'account#login'
-  match 'logout', 'account#logout'
+  match('', 'home#index');
+  match('login', 'account#login');
+  match('logout', 'account#logout')
 };
 ```
-
-## Credit
-
-`koa-spa` is inspired by @paulmillr's [pushserve](https://github.com/paulmillr/pushserve).
 
 
 ## License
