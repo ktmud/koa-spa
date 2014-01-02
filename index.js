@@ -47,12 +47,15 @@ module.exports = function(directory, options) {
   var files = {};
   var serve = staticCache(directory, options.static, files);
   var index = options.index;
-  var routeBase = new RegExp('^' + options.routeBase.replace(/\/$/, ''));
+  var routeBase = options.routeBase.replace(/\/$/, '');
   var stripSlash = options.stripSlash;
 
   if (index[0] !== '/') index = '/' + index;
   if (routes) {
     transformRoutes(options.routes);
+  }
+  if (routeBase) {
+    routeBase = new RegExp('^' + routeBase);
   }
 
   return function* (next) {
@@ -65,19 +68,19 @@ module.exports = function(directory, options) {
 
     var path = this.path;
 
-    // then tail is slash
-    if (path.slice(-1) === '/') {
+    // when tail is slash
+    if (path.length > 2 && path.slice(-1) === '/') {
+      // consider as no slash internally
       path = path.slice(0, -1);
-      // then strip slash, do redirect
+      // if neeed strip slash, do redirect
       if (stripSlash) {
         this.status = 301;
         this.redirect(path);
         return;
       }
-      // otherwise the url is considered as no slash
     }
 
-    var key = path.replace(routeBase, '');
+    var key = routeBase ? path.replace(routeBase, '') : path;
     if (key) {
       file = files[key];
       if (file) {
@@ -106,8 +109,7 @@ module.exports = function(directory, options) {
     // run other middlewares
     yield next;
 
-    // status is still 404, means not served by other middlewares
-    if (matched && this.status == 404) {
+    if (matched) {
       this.path = index;
       yield serve;
     }
