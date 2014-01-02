@@ -9,7 +9,7 @@ while keep assets files (css, js) under the same directory accessible.
 This is only a koa middleware,
 so you can decorate the server with your own middlewares,
 or integrate this "pushState friendly" functionality into
-a _normal server_(with server side routing).
+a _normal server_ (with server side routing).
 
 A custom 404 page is possible, too.
 
@@ -21,31 +21,10 @@ var path_ = require('path');
 var koa = require('koa');
 var spa = require('koa-spa');
 
-var LOCALE_COOKIE = 'locale';
-var ALL_LOCALES = ['zh-cn', 'zh-tw', 'en'];
-
-/**
- * Find out what languages user can use, and set a cookie for that
- */
-function detectLanguage(availables) {
-  return function *() {
-    if (!this.cookies.get(LOCALE_COOKIE)) {
-      var accept = this.acceptsLanguages(availables);
-      if (accept) {
-        this.cookies.set(LOCALE_COOKIE, accept, { 
-          httpOnly: false,
-          signed: false,
-          expires: new Date(+new Date() + 3000 * ONE_DAY)
-        });
-      }
-    }
-  }
-}
-
-
 exports.startServer = function(port, path) {
   var routes = {};
-  // collect all available routes
+
+  // collect available routes
   require('./app/routes')(spa.routeCollector(routes));
 
   var app = koa();
@@ -55,12 +34,14 @@ exports.startServer = function(port, path) {
      routes: routes
   }));
 
-  // static file requests will not run through middlewares below,
+  // assets file requests will not run through middlewares below,
   // but `index.html` requests will
-  app.use(detectLanguage(ALL_LOCALES));
+  // app.use(detectLanguage());
 
   // add your custom 404 page
   app.use(function* () {
+    // requests not matching the routes will have a status of 404 by now,
+    // but the response it not yet sent
     if (this.status == 404) {
       res.body = 'Nothing Here.';
     }
@@ -70,7 +51,8 @@ exports.startServer = function(port, path) {
 };
 ```
 
-The required `app/routes.js` is your route configuration for Backbones.js:
+If your are using something like [brunch](http://brunch.io) and Backbone.js,
+the `app/routes.js` required above would be your routes configuration for Backbones.js:
 
 ```javascript
 module.exports = function(match) {
