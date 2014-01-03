@@ -17,7 +17,9 @@ function transformRoutes(routes) {
   var k, v;
   for (k in routes) {
     v = routes[k];
-    routes[k] = new RegExp('^' + v.replace(/\:[^\/]+/g, '([^\/]+)') + '$');
+    if (typeof v === 'string') {
+      routes[k] = new RegExp('^' + v.replace(/\:[^\/]+/g, '([^\/]+)') + '$');
+    }
   }
   return routes;
 }
