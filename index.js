@@ -1,3 +1,4 @@
+var fs = require('fs');
 var path_ = require('path');
 var staticCache = require('koa-static-cache');
 
@@ -22,6 +23,13 @@ function transformRoutes(routes) {
     }
   }
   return routes;
+}
+
+function cleanFileSizes(files) {
+  for (var f in files) {
+    delete files[f].length;
+    delete files[f].etag;
+  }
 }
 
 var ONE_DAY = 24 * 60 * 60;
@@ -52,12 +60,29 @@ module.exports = function(directory, options) {
   var routeBase = options.routeBase.replace(/\/$/, '');
   var stripSlash = options.stripSlash;
 
+  // Clean file size of static-cache when debug
+  if (debug) {
+    cleanFileSizes(files);
+  }
+
   if (index[0] !== '/') index = '/' + index;
   if (routes) {
     transformRoutes(options.routes);
   }
   if (routeBase) {
     routeBase = new RegExp('^' + routeBase);
+  }
+
+
+  function getHeaders(filekey) {
+    var filename = path_.join(directory, filekey);
+    if (fs.existsSync(filename)) {
+      var stats = fs.statSync(filename);
+      return {
+        cacheControl: 'no-cache',
+        mtime: stats.mtime.toUTCString()
+      }
+    }
   }
 
   return function* (next) {
@@ -68,7 +93,9 @@ module.exports = function(directory, options) {
       this.throw('Method Not Allowed', 405);
     }
 
-    var path = this.path;
+    var path, key, file;
+
+    path = this.path;
 
     // when tail is slash
     if (path.length > 2 && path.slice(-1) === '/') {
@@ -82,11 +109,14 @@ module.exports = function(directory, options) {
       }
     }
 
-    var key = routeBase ? path.replace(routeBase, '') : path;
+    key = routeBase ? path.replace(routeBase, '') : path;
     if (key) {
-      file = files[key];
-      if (file) {
-        // if static file is found, send the file
+      if (!files[key] && debug) {
+        // if not cached, but debugging,
+        // try figure out whether this file exists now
+        files[key] = getHeaders(key);
+      }
+      if (files[key]) {
         return yield serve;
       }
     }
