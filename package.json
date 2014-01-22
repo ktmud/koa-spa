@@ -1,6 +1,6 @@
 {
   "name": "koa-spa",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Single Page Application server with koa.",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,8 @@
     "url": "git://github.com/ktmud/koa-spa"
   },
   "dependencies": {
-    "koa-static-cache": "~1.0.0"
+    "mime": "~1.2.11",
+    "koa-static-cache": "~1.0.4"
   },
   "keywords": [
     "koa",

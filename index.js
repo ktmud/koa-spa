@@ -1,5 +1,7 @@
+var crypto = require('crypto')
 var fs = require('fs')
 var path_ = require('path')
+var mime = require('mime')
 var staticCache = require('koa-static-cache')
 
 var ONE_DAY = 24 * 60 * 60
@@ -56,14 +58,10 @@ module.exports = function(directory, options) {
   var routes = options.routes
   var files = {}
   var serve = staticCache(directory, options.static, files)
+  var alias = options.static.alias || {}
   var index = options.index
   var routeBase = options.routeBase.replace(/\/$/, '')
   var stripSlash = options.stripSlash
-
-  // Clean file size of static-cache when debug
-  if (debug) {
-    cleanFileSizes(files)
-  }
 
   if (index[0] !== '/') index = '/' + index
   if (routes) {
@@ -75,16 +73,20 @@ module.exports = function(directory, options) {
 
 
   function getHeaders(filekey) {
+    filekey = alias[filekey] || filekey
     var filename = path_.join(directory, filekey)
     if (fs.existsSync(filename)) {
       var obj = {}
       var stats = fs.statSync(filename)
+      var buffer = fs.readFileSync(filename)
+
       obj.path = filename;
       obj.cacheControl = options.static.cacheControl
       obj.maxAge = options.static.maxAge || 0
       obj.mtime = stats.mtime.toUTCString()
+      obj.type = obj.mime = mime.lookup(filekey)
       obj.length = stats.size
-      obj.etag = obj.mtime
+      obj.md5 = crypto.createHash('md5').update(buffer).digest('base64')
       return obj
     }
   }
@@ -119,9 +121,8 @@ module.exports = function(directory, options) {
       this.path = index;
     }
     if (key) {
-      if (!files[key] && debug) {
-        // if not cached, but debugging,
-        // try figure out whether this file exists now
+      if (debug) {
+        // if debugging, always update file headers
         files[key] = getHeaders(key)
       }
       if (files[key]) {
