@@ -2,6 +2,7 @@ var crypto = require('crypto')
 var fs = require('fs')
 var path_ = require('path')
 var mime = require('mime')
+var pathToRegexp = require('path-to-regexp')
 var staticCache = require('koa-static-cache')
 
 var ONE_DAY = 24 * 60 * 60
@@ -137,7 +138,7 @@ module.exports = function(directory, options) {
     } else {
       for (var r in routes) {
         // serve index.html for any path under routes
-        if (key.match(routes[r])) {
+        if (routes[r].test(key)) {
           matched = true
           break
         }
@@ -163,7 +164,7 @@ module.exports.routeCollector = function(routes) {
     if (route[0] != '/') {
       route = '/' + route // add head slash
     }
-    routes[route] = route.replace(/[^^]\/$/, '') // clean tail slash
+    routes[route] = pathToRegexp(route) // clean tail slash
   }
   ret.routes = routes
   return ret

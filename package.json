@@ -1,6 +1,6 @@
 {
   "name": "koa-spa",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Single Page Application server with koa.",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "mime": "~1.2.11",
+    "path-to-regexp": "~0.0.2",
     "koa-static-cache": "~1.0.4"
   },
   "keywords": [
