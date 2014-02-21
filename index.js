@@ -61,10 +61,12 @@ module.exports = function(directory, options) {
   var serve = staticCache(directory, options.static, files)
   var alias = options.static.alias || {}
   var index = options.index
+  var notFound = options['404']
   var routeBase = options.routeBase.replace(/\/$/, '')
   var stripSlash = options.stripSlash
 
   if (index[0] !== '/') index = '/' + index
+  if (notFound && notFound[0] !== '/') notFound = '/' + notFound
   if (routes) {
     transformRoutes(options.routes)
   }
@@ -152,7 +154,16 @@ module.exports = function(directory, options) {
     yield next
 
     if (matched) {
+      if (!(index in files)) {
+        this.throw(404, 'Index file ' + index + ' not found')
+      }
       this.path = index
+      yield serve
+    } else if (notFound) {
+      if (!(notFound in files)) {
+        this.throw(404, '404 file ' + notFound + ' not found')
+      }
+      this.path = notFound
       yield serve
     }
   }

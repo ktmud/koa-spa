@@ -30,6 +30,7 @@ exports.startServer = function(port, path) {
   var app = koa();
   app.use(spa(path_.join(__dirname, path), {
      index: 'index.html',
+     404: '404.html',
      routeBase: '/',
      routes: routes
   }));
@@ -38,17 +39,18 @@ exports.startServer = function(port, path) {
   // but `index.html` requests will
   // app.use(detectLanguage());
 
-  // add your custom 404 page
+  app.listen(port);
+};
+```
+
+Or you can handle 404 error programmatically:
+```
+  // add this after `app.use(spa...`
   app.use(function* () {
-    // requests not matching the routes will have a status of 404 by now,
-    // but the response it not yet sent
     if (this.status == 404) {
       res.body = 'Nothing Here.';
     }
   });
-
-  app.listen(port);
-};
 ```
 
 If your are using something like [brunch](http://brunch.io) and Backbone.js,
@@ -61,6 +63,39 @@ module.exports = function(match) {
   match('logout', 'account#logout')
 };
 ```
+
+## in Production
+
+This module should not be used as a production server directly, since the static files
+are not compressed at all. But you can add a nginx proxy layer onto it.
+
+```
+http {
+
+    gzip  on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types *;
+
+    server {
+      listen 80;
+      server_name www.example.com;
+      root /var/www/yoursite/public/;
+      index index.html;
+      try_files $uri @koa_spa;
+      location @koa_spa {
+        proxy_pass http://127.0.0.1:3333;
+      }
+    }
+}
+```
+
+Actually, you can just use nginx and do `try_files $uri index.html`.
+If you are OK with returing 200 for a URI that definitely doesn't exits.
+
+
+Or to combine this middleware with [koa-compress](https://github.com/koajs/compress),
+then you have a pure nodejs web server.
 
 
 ## License
