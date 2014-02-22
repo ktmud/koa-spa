@@ -165,6 +165,7 @@ module.exports = function(directory, options) {
       }
       this.path = notFound
       yield serve
+      this.status = 404
     }
   }
 }
